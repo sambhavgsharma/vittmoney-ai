@@ -27,6 +27,17 @@ app.get('/', (req, res) => {
     res.json({ message: 'VittMoney API is running' });
 });
 
+// Mount auth routes
+const authRoutes = require('./routes/auth');
+app.use('/api', authRoutes);
+
+// Dashboard route
+const authMiddleware = require('./middleware/auth');
+app.get('/api/dashboard', authMiddleware, (req, res) => {
+    // Assuming req.user is set by authMiddleware
+    res.json({ user: req.user });
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
