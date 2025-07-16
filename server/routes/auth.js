@@ -6,7 +6,7 @@ const User = require('../Models/User.js');
 
 const router = express.Router();
 
-const CLIENT_URL = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+const CLIENT_URL = process.env.CLIENT_ORIGIN || 'https://vittmoney-ai-git-main-sambhavgsharmas-projects.vercel.app/';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/register
