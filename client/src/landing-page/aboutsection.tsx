@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Image from "next/image";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -51,10 +52,13 @@ const AboutSection = () => {
       <div className="container mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
         {/* Logo / Image Side */}
         <div className="flex justify-center md:justify-start">
-          <img
+          <Image
             src="/assets/images/logo.svg"
             alt="Vittmoney Logo"
+            width={256}
+            height={256}
             className="w-64 h-64 object-contain animate-float-slow drop-shadow-[0_0_32px_#66FF99aa] hover:scale-105 transition-transform ease-in-out duration-500"
+            priority
           />
         </div>
         {/* Text Side */}

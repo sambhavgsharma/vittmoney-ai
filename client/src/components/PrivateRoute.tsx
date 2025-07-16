@@ -17,7 +17,7 @@ export default function PrivateRoute({ children }: { children: React.ReactNode }
     } else {
       setChecking(false);
     }
-  }, []);
+  }, [router]);
 
   if (checking) return <Loader />;
   if (authModalOpen) {

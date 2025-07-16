@@ -5,7 +5,6 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '600', '700'],
 });
-import Lenis from '@studio-freight/lenis';
 import gsap from 'gsap';
 import Button from '../components/Button';
 import AuthModal from '../components/AuthModal';
@@ -15,7 +14,7 @@ import * as THREE from "three";
 
 
 const CoinsModel = ({ isUserInteracting }: { isUserInteracting: boolean }) => {
-  const group = useRef<any>(null);
+  const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF("/assets/3d-models/pile/scene.gltf");
   useFrame(() => {
     if (!isUserInteracting && group.current) {
@@ -25,46 +24,12 @@ const CoinsModel = ({ isUserInteracting }: { isUserInteracting: boolean }) => {
   return <primitive ref={group} object={scene} scale={2} />;
 };
 
-// Floating symbol for click interaction
-const FloatingSymbol = ({ position, symbol, onFade }: { position: [number, number, number], symbol: string, onFade: () => void }) => {
-  const ref = useRef<any>(null);
-  const [opacity, setOpacity] = useState(1);
-  useFrame((_, delta) => {
-    if (ref.current) {
-      ref.current.position.y += delta * 0.5; // float up
-      setOpacity((prev) => {
-        const next = prev - delta * 0.5;
-        if (next <= 0) {
-          onFade();
-        }
-        return Math.max(0, next);
-      });
-    }
-  });
-  return (
-    <Text
-      ref={ref}
-      position={position}
-      fontSize={0.25}
-      color={`rgba(255,255,255,${opacity})`}
-      anchorX="center"
-      anchorY="middle"
-      outlineColor="#66FF99"
-      outlineWidth={0.01}
-    >
-      {symbol}
-    </Text>
-  );
-};
-
 
 const HeroSection = () => {
 
   const [isUserInteracting, setIsUserInteracting] = useState(false);
-  const [symbols, setSymbols] = useState<Array<{ id: number, position: [number, number, number], symbol: string }>>([]);
   const [authOpen, setAuthOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const symbolId = useRef(0);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLButtonElement>(null);
@@ -118,32 +83,11 @@ const HeroSection = () => {
     }, 1000); // Resume rotation after 1s idle
   };
 
-  // Handle click on 3D canvas: spawn a floating symbol
-  const handleCanvasClick = () => {
-    // Random position in view (x: -1.2 to 1.2, y: -0.5 to 1.2, z: -0.5 to 0.5)
-    const x = Math.random() * 2.4 - 1.2;
-    const y = Math.random() * 1.7 - 0.5;
-    const z = Math.random() * 1.0 - 0.5;
-    const symbolList = ["✦", "+", "★", "✧", "✺"];
-    const symbol = symbolList[Math.floor(Math.random() * symbolList.length)];
-    setSymbols((prev) => [
-      ...prev,
-      { id: symbolId.current++, position: [x, y, z], symbol },
-    ]);
-  };
-
-    function randomPos() {
-      return {
-        x: Math.random() * 60 - 30,
-        y: Math.random() * 40 - 20,
-        scale: 1 + Math.random() * 0.2,
-      };
-    }
 
   return (
     <section id="herosection" ref={sectionRef} className={`relative flex flex-col items-center justify-center min-h-[60vh] md:min-h-[75vh] lg:min-h-screen w-full overflow-x-hidden overflow-hidden ${plusJakarta.className}`}>
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [1, 1, 2], fov: 30 }} shadows onPointerDown={handleCanvasClick} style={{ cursor: 'pointer' }}>
+        <Canvas camera={{ position: [1, 1, 2], fov: 30 }} shadows>
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
           {/* 3D VITT text in the background */}
@@ -164,15 +108,7 @@ const HeroSection = () => {
             <Environment preset="sunset" />
             <CoinsModel isUserInteracting={isUserInteracting} />
           </Suspense>
-          {/* Render floating symbols */}
-          {symbols.map(({ id, position, symbol }) => (
-            <FloatingSymbol
-              key={id}
-              position={position}
-              symbol={symbol}
-              onFade={() => setSymbols((prev) => prev.filter((s) => s.id !== id))}
-            />
-          ))}
+          {/* OrbitControls */}
           <OrbitControls onStart={handleStart} onEnd={handleEnd} enableZoom={false} />
         </Canvas>
       </div>

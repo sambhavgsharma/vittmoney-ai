@@ -2,10 +2,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import React, { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
-import { signIn } from "next-auth/react";
 import Button from "@/components/Button";
 import Loader from "./Loader";
-import { cn } from "@/lib/utils";
 
 export default function AuthModal({ open, onOpenChange, type }: {
   open: boolean;
@@ -56,7 +54,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
   const handleSubmit = async () => {
     setError(null);
     setSubmitting(true);
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "https://vittmoney-ai-backend.onrender.com/api";
     // Login Logic
     if (modalType === "login") {
       try {
@@ -76,7 +74,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
         onOpenChange(false);
         // Optionally, reload or redirect
         window.location.href = "/dashboard";
-      } catch (err) {
+      } catch {
         setError("Login failed");
       } finally {
         setSubmitting(false);
@@ -124,7 +122,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
         } else {
           setError(loginData.message || "Auto-login failed");
         }
-      } catch (err) {
+      } catch {
         setError("Registration failed");
       } finally {
         setSubmitting(false);
@@ -266,7 +264,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
           <Button
             onClick={() => {
               // Redirect to backend Google OAuth endpoint
-              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api") + "/google";
+              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "https://vittmoney-ai-backend.onrender.com/api") + "/google";
             }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"
@@ -276,7 +274,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
           <Button
             onClick={() => {
               // Redirect to backend GitHub OAuth endpoint
-              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api") + "/github";
+              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "https://vittmoney-ai-backend.onrender.com/api") + "/github";
             }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"

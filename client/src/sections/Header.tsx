@@ -15,8 +15,6 @@ const navLinks = [
     { label: "Contact", href: "#ctasection", target: "ctasection" }
 ];
 
-import Lenis from '@studio-freight/lenis';
-
 
 
 const Header = () => {
@@ -44,7 +42,7 @@ const Header = () => {
     setTimeout(() => {
       const target = document.getElementById(targetId);
       if (target) {
-        const lenis = (window as any).lenis;
+        const lenis = (window as { lenis?: { scrollTo?: (target: HTMLElement, options?: { offset?: number; duration?: number; easing?: (t: number) => number }) => void } }).lenis;
         if (lenis && typeof lenis.scrollTo === 'function') {
           lenis.scrollTo(target, { offset: -80, duration: 1.1, easing: (t: number) => 1 - Math.pow(1 - t, 3) });
         } else {
@@ -64,7 +62,7 @@ const Header = () => {
           </div>
           {/* Desktop Nav */}
           <nav className='hidden lg:flex justify-center items-center gap-6'>
-            {navLinks.map((link, idx) => (
+            {navLinks.map((link) => (
               <div
                 key={link.label}
                 className="relative group"
@@ -76,7 +74,7 @@ const Header = () => {
                     e.preventDefault();
                     const target = document.getElementById(link.target);
                     if (target) {
-                      const lenis = (window as any).lenis;
+                      const lenis = (window as { lenis?: { scrollTo?: (target: HTMLElement, options?: { offset?: number; duration?: number; easing?: (t: number) => number }) => void } }).lenis;
                       if (lenis && typeof lenis.scrollTo === 'function') {
                         lenis.scrollTo(target, { offset: -80, duration: 1.1, easing: (t: number) => 1 - Math.pow(1 - t, 3) });
                       } else {
@@ -85,7 +83,7 @@ const Header = () => {
                     }
                   }}
                   onMouseEnter={e => {
-                    const underline = e.currentTarget.nextElementSibling;
+                    const underline = e.currentTarget.nextElementSibling as HTMLElement;
                     gsap.to(underline, {
                       width: '100%',
                       left: '0%',
@@ -95,7 +93,7 @@ const Header = () => {
                     });
                   }}
                   onMouseLeave={e => {
-                    const underline = e.currentTarget.nextElementSibling;
+                    const underline = e.currentTarget.nextElementSibling as HTMLElement;
                     gsap.to(underline, {
                       width: '0%',
                       left: '50%',
