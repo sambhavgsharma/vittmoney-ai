@@ -1,9 +1,13 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const User = require('../Models/User');
+const bcrypt = require('bcryptjs');
+const User = require('../Models/User.js');
 
 const router = express.Router();
+
+const CLIENT_URL = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/register
 router.post('/register', async (req, res) => {
@@ -74,34 +78,40 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// GET /api/google/callback
-router.get('/google/callback', (req, res) => {
-    // Placeholder for Google OAuth callback logic
-    res.json({ message: 'Google callback not implemented.' });
-});
+// --- Google OAuth ---
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// GET /api/github/callback
-router.get('/github/callback', (req, res) => {
-    // Placeholder for GitHub OAuth callback logic
-    res.json({ message: 'GitHub callback not implemented.' });
-});
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: CLIENT_URL }),
+  (req, res) => {
+    // Generate JWT and redirect to client with token
+    const token = jwt.sign({ id: req.user._id, provider: 'google' }, JWT_SECRET, { expiresIn: '7d' });
+    res.redirect(`${CLIENT_URL}/oauth-success?token=${token}`);
+  }
+);
 
-// GET /api/logout
-router.get('/logout', (req, res) => {
-    // For JWT, logout is handled on client by deleting token
-    res.json({ message: 'Logged out.' });
-});
+// --- GitHub OAuth ---
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-const auth = require('../middleware/auth');
-// GET /api/me
-router.get('/me', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        if (!user) return res.status(404).json({ message: 'User not found.' });
-        res.json({ user });
-    } catch (err) {
-        res.status(401).json({ message: 'Invalid token.' });
-    }
+router.get(
+  '/github/callback',
+  passport.authenticate('github', { session: false, failureRedirect: CLIENT_URL }),
+  (req, res) => {
+    // Generate JWT and redirect to client with token
+    const token = jwt.sign({ id: req.user._id, provider: 'github' }, JWT_SECRET, { expiresIn: '7d' });
+    res.redirect(`${CLIENT_URL}/oauth-success?token=${token}`);
+  }
+);
+
+const authMiddleware = require('../middleware/auth.js');
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json({ user });
+  } catch {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
 });
 
 module.exports = router;
