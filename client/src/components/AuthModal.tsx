@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
 import { signIn } from "next-auth/react";
 import Button from "@/components/Button";
+import Loader from "./Loader";
 import { cn } from "@/lib/utils";
 
 export default function AuthModal({ open, onOpenChange, type }: {
@@ -18,6 +19,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
   const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // add confirm password state
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Keep modalType in sync with prop
@@ -49,9 +51,13 @@ export default function AuthModal({ open, onOpenChange, type }: {
     return base ? `${base}${suffix}` : `user${suffix}`;
   }
 
+
+  // Handle form submission for login or registration
   const handleSubmit = async () => {
     setError(null);
+    setSubmitting(true);
     const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api";
+    // Login Logic
     if (modalType === "login") {
       try {
         const res = await fetch(`${apiBase}/login`, {
@@ -72,15 +78,22 @@ export default function AuthModal({ open, onOpenChange, type }: {
         window.location.href = "/dashboard";
       } catch (err) {
         setError("Login failed");
+      } finally {
+        setSubmitting(false);
       }
-    } else {
+    }
+    // For Register Logic 
+    else {
+
       // Registration: validate all required fields
       if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
         setError("All fields are required.");
+        setSubmitting(false);
         return;
       }
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
+        setSubmitting(false);
         return;
       }
       // Generate username from name
@@ -89,11 +102,12 @@ export default function AuthModal({ open, onOpenChange, type }: {
         const res = await fetch(`${apiBase}/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, username }), // add username
+          body: JSON.stringify({ name, email, password, username }),
         });
         const data = await res.json();
         if (!res.ok) {
           setError(data.message || "Registration failed");
+          setSubmitting(false);
           return;
         }
         // Auto-login after registration
@@ -112,16 +126,24 @@ export default function AuthModal({ open, onOpenChange, type }: {
         }
       } catch (err) {
         setError("Registration failed");
+      } finally {
+        setSubmitting(false);
       }
     }
   };
+
+  // UI Here
+  if (submitting) {
+    return <Loader />;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={modalRef}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md bg-[#0f1f1c] text-white border border-white/10 backdrop-blur-md rounded-2xl p-8 md:p-10 shadow-xl z-[100]"
-      >
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md bg-[#0f1f1c] text-white border border-white/10 backdrop-blur-md rounded-2xl p-8 md:p-10 shadow-xl z-[100] overflow-y-auto scroll-smooth max-h-[100vh]"
+      /* Remove invalid style prop and move custom scrollbar CSS to a <style> tag below */
+>
         {/* Animated background blob */}
         <span
           className="pointer-events-none absolute -top-16 -left-16 w-72 h-72 rounded-full opacity-60 blur-3xl z-0"
@@ -242,34 +264,23 @@ export default function AuthModal({ open, onOpenChange, type }: {
 
         <div className="flex flex-col gap-2 md:gap-3 relative z-10">
           <Button
-            onClick={() => signIn("google")}
+            onClick={() => {
+              // Redirect to backend Google OAuth endpoint
+              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api") + "/google";
+            }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"
           >
-            <span className="inline-block align-middle">
-              {/* Google G logo (white) */}
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g>
-                  <path d="M17.64 9.2045c0-.638-.057-1.252-.163-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.72v2.26h2.908c1.703-1.57 2.685-3.885 2.685-6.62z" fill="#fff"/>
-                  <path d="M9 18c2.43 0 4.47-.805 5.96-2.19l-2.908-2.26c-.807.54-1.84.86-3.052.86-2.347 0-4.33-1.587-5.04-3.72H.96v2.33A8.997 8.997 0 0 0 9 18z" fill="#fff"/>
-                  <path d="M3.96 10.69A5.41 5.41 0 0 1 3.5 9c0-.59.102-1.16.28-1.69V4.98H.96A8.997 8.997 0 0 0 0 9c0 1.41.34 2.75.96 3.92l3-2.23z" fill="#fff"/>
-                  <path d="M9 3.58c1.32 0 2.5.454 3.43 1.345l2.57-2.57C13.47.805 11.43 0 9 0A8.997 8.997 0 0 0 .96 4.98l3 2.33C4.67 5.167 6.653 3.58 9 3.58z" fill="#fff"/>
-                </g>
-              </svg>
-            </span>
             Continue with Google
           </Button>
           <Button
-            onClick={() => signIn("github")}
+            onClick={() => {
+              // Redirect to backend GitHub OAuth endpoint
+              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api") + "/github";
+            }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"
           >
-            <span className="inline-block align-middle">
-              {/* GitHub logo (white) */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.184 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.091-.647.35-1.088.636-1.339-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.987 1.029-2.687-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.295 2.748-1.025 2.748-1.025.546 1.378.202 2.397.1 2.65.64.7 1.028 1.594 1.028 2.687 0 3.847-2.338 4.695-4.566 4.944.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.749 0 .267.18.577.688.48C19.138 20.2 22 16.447 22 12.02 22 6.484 17.523 2 12 2Z" fill="#fff"/>
-              </svg>
-            </span>
             Continue with GitHub
           </Button>
         </div>
@@ -306,9 +317,28 @@ export default function AuthModal({ open, onOpenChange, type }: {
             0% { transform: translateY(0) scale(1); }
             100% { transform: translateY(30px) scale(1.12); }
           }
+          /* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
         `}</style>
       </DialogContent>
     </Dialog>
   );
-}
 
+}

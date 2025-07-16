@@ -7,8 +7,10 @@ import HeroSection from '../landing-page/HeroSection';
 import FeaturesSection from '../landing-page/features-section';
 import AboutSection from '@/landing-page/aboutsection';
 import CTASection from '@/landing-page/ctasection';
+import Loader from "../components/Loader";
 
 const Home = () => {
+  const [loading, setLoading] = React.useState(true);
   useEffect(() => {
     const lenis = new Lenis({
       lerp: 0.08,
@@ -19,8 +21,10 @@ const Home = () => {
       requestAnimationFrame(raf);
     }
     requestAnimationFrame(raf);
+    setTimeout(() => setLoading(false), 600); // Simulate short loading
     return () => lenis.destroy();
   }, []);
+  if (loading) return <Loader />;
   return (
     <>
       <Header />
