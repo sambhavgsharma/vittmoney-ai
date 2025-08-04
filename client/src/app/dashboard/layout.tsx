@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import React from "react";
 import { SwitchModeProvider } from "@/components/SwitchMode";
-import Footer from "@/sections/Footer";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

@@ -19,7 +19,6 @@ export default function Sidebar({ onLogout }: { onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const { theme } = useSwitchMode();
 
-  const accent = theme === 'light' ? '#99FF77' : '#66FF99';
   const bgGradient = theme === 'light'
     ? 'bg-gradient-to-br from-[#f7f6ff]/80 via-[#e6ffe0]/70 to-[#99FF77]/20 backdrop-blur-xl'
     : 'bg-gradient-to-br from-[#0f1f1c]/80 via-[#1e3a34]/60 to-[#66FF99]/10 backdrop-blur-xl';

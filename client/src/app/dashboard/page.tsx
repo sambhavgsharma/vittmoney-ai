@@ -29,20 +29,17 @@ export default function DashboardHome() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [dropdownOpen]);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { theme, toggleTheme } = useSwitchMode();
 
   useEffect(() => {
     const fetchUser = async () => {
-      setLoading(true);
       setError(null);
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         if (!token) {
           setError("Not authenticated");
-          setLoading(false);
           return;
         }
         const res = await fetch("http://localhost:5000/api/me", {
@@ -52,15 +49,12 @@ export default function DashboardHome() {
         });
         if (!res.ok) {
           setError("Failed to fetch user");
-          setLoading(false);
           return;
         }
         const data = await res.json();
         setUser(data.user);
-      } catch (e) {
+      } catch {
         setError("Failed to fetch user");
-      } finally {
-        setLoading(false);
       }
     };
     fetchUser();
