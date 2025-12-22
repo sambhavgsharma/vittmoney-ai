@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
 import { useSwitchMode } from './SwitchMode';
-import { Home, BarChart2, Settings, LogOut, X, Menu } from 'lucide-react';
+import { Home, BarChart2, Settings, LogOut, X, Menu, Receipt } from 'lucide-react';
 import logo from '../assets/images/logo.svg';
 
 export default function Sidebar({ onLogout }: { onLogout: () => void }) {
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: <Home size={20} /> },
+    { name: "Expenses", href: "/dashboard/expenses", icon: <Receipt size={20} /> },
     { name: "Analytics", href: "/dashboard/analytics", icon: <BarChart2 size={20} /> },
     { name: "Settings", href: "/dashboard/settings", icon: <Settings size={20} /> },
   ];

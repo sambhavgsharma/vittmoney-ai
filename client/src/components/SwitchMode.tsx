@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import { safeLocalStorage } from "@/lib/safeLocalStorage";
 
 // Types for theme
 export type ThemeType = "dark" | "light";
@@ -12,24 +13,29 @@ interface SwitchModeContextProps {
 const SwitchModeContext = createContext<SwitchModeContextProps | undefined>(undefined);
 
 export function SwitchModeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeType>(
-    typeof window !== "undefined" && window.localStorage.getItem("theme") === "light"
-      ? "light"
-      : "dark"
-  );
+  const [theme, setTheme] = useState<ThemeType>("dark");
+  const [mounted, setMounted] = useState(false);
 
+  // Initialize theme from localStorage only on client
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (theme === "dark") {
-        document.documentElement.classList.add("dark");
-        document.documentElement.classList.remove("light");
-      } else {
-        document.documentElement.classList.remove("dark");
-        document.documentElement.classList.add("light");
-      }
-      window.localStorage.setItem("theme", theme);
+    const savedTheme = safeLocalStorage.get("theme") === "light" ? "light" : "dark";
+    setTheme(savedTheme);
+    setMounted(true);
+  }, []);
+
+  // Update DOM and localStorage when theme changes
+  useEffect(() => {
+    if (!mounted) return;
+    
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
     }
-  }, [theme]);
+    safeLocalStorage.set("theme", theme);
+  }, [theme, mounted]);
 
   const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 

@@ -107,10 +107,17 @@ router.get(
 const authMiddleware = require('../middleware/auth.js');
 router.get('/me', authMiddleware, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Invalid token data' });
+    }
     const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     res.json({ user });
-  } catch {
-    res.status(401).json({ error: 'Unauthorized' });
+  } catch (err) {
+    console.error('Error fetching user:', err.message);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 

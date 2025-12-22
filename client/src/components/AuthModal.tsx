@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
 import Button from "@/components/Button";
 import Loader from "./Loader";
+import { safeLocalStorage } from "@/lib/safeLocalStorage";
 
 export default function AuthModal({ open, onOpenChange, type }: {
   open: boolean;
@@ -69,7 +70,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
           return;
         }
         if (data.token) {
-          localStorage.setItem("token", data.token);
+          safeLocalStorage.set("token", data.token);
         }
         onOpenChange(false);
         // Optionally, reload or redirect
@@ -116,7 +117,7 @@ export default function AuthModal({ open, onOpenChange, type }: {
         });
         const loginData = await loginRes.json();
         if (loginRes.ok && loginData.token) {
-          localStorage.setItem("token", loginData.token);
+          safeLocalStorage.set("token", loginData.token);
           onOpenChange(false);
           window.location.href = "/dashboard";
         } else {

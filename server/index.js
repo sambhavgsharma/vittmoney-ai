@@ -48,6 +48,14 @@ app.get('/api/dashboard', authMiddleware, (req, res) => {
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
 
+// Expense routes
+const expenseRoutes = require('./routes/expenses');
+app.use('/api/expenses', expenseRoutes);
+
+// Analytics routes
+const analyticsRoutes = require('./routes/analytics');
+app.use('/api/analytics', analyticsRoutes);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AuthModal from "@/components/AuthModal";
 import Loader from "../components/Loader";
+import { safeLocalStorage } from "@/lib/safeLocalStorage";
 
 export default function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -9,7 +10,7 @@ export default function PrivateRoute({ children }: { children: React.ReactNode }
   const router = useRouter();
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = safeLocalStorage.get("token");
     if (!token) {
       setAuthModalOpen(true);
       router.replace("/");
