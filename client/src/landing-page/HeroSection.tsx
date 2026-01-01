@@ -40,9 +40,28 @@ const HeroSection = () => {
   // GSAP intro and parallax
   useEffect(() => {
     if (!titleRef.current || !subRef.current || !ctaRef.current) return;
-    gsap.fromTo(titleRef.current, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'power3.out' });
-    gsap.fromTo(subRef.current, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 1, delay: 0.4, ease: 'power3.out' });
-    gsap.fromTo(ctaRef.current, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, delay: 0.8, ease: 'back.out(1.7)' });
+    
+    // Staggered title animation for Awwwards style
+    const titleSpans = titleRef.current?.querySelectorAll('span');
+    if (titleSpans && titleSpans.length > 0) {
+      gsap.fromTo(
+        titleSpans,
+        { y: 100, opacity: 0, rotateX: -20 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          rotateX: 0,
+          duration: 0.8, 
+          stagger: 0.15,
+          ease: 'power3.out',
+        }
+      );
+    } else {
+      gsap.fromTo(titleRef.current, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'power3.out' });
+    }
+    
+    gsap.fromTo(subRef.current, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 1, delay: 0.5, ease: 'power3.out' });
+    gsap.fromTo(ctaRef.current, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, delay: 1, ease: 'back.out(1.7)' });
 
     // Parallax on scroll
     const handleScroll = () => {
@@ -53,22 +72,6 @@ const HeroSection = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Animated background blob for the word "Decoded" (performance: useLayoutEffect)
-  useLayoutEffect(() => {
-    const decodedBG = document.getElementById("decoded-bg");
-    if (decodedBG) {
-      gsap.to(decodedBG, {
-        x: () => gsap.utils.random(-30, 30),
-        y: () => gsap.utils.random(-20, 20),
-        scale: () => gsap.utils.random(1, 1.3),
-        duration: 4,
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-      });
-    }
   }, []);
 
 
@@ -121,25 +124,19 @@ const HeroSection = () => {
             The background is a 3D model — Use mouse to interact!
           </span>
         </div>
-        <h1 ref={titleRef} className="text-4xl md:text-6xl font-bold text-white drop-shadow-lg mb-4 relative inline-block">
-          Your Money,{' '}
+        <h1 ref={titleRef} className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 relative inline-block leading-tight">
           <span className="relative inline-block">
-            <span
-              className="relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-[#66FF99] via-white to-[#04443C] drop-shadow-[0_0_15px_#66FF99]"
-              style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}
-            >
+            <span className="absolute inset-0 bg-gradient-to-r from-[#66FF99] via-[#66FF99] to-transparent blur-2xl opacity-40 -z-10 animate-pulse" />
+            <span className="bg-gradient-to-r from-white via-white to-[#66FF99] bg-clip-text text-transparent">
+              Your Money,
+            </span>
+          </span>
+          {' '}
+          <span className="relative inline-block">
+            <span className="absolute -inset-2 bg-gradient-to-r from-[#66FF99] via-[#66FF99] to-[#04443C] rounded-lg blur-lg opacity-30 -z-10 animate-pulse" style={{ animationDelay: '0.2s' }} />
+            <span className="relative bg-gradient-to-r from-[#66FF99] via-[#99FFB3] to-[#66FF99] bg-clip-text text-transparent font-extrabold drop-shadow-2xl">
               Decoded
             </span>
-            <span
-              id="decoded-bg"
-              className="pointer-events-none absolute inset-0 z-0 rounded-xl opacity-70"
-              style={{
-                background: 'radial-gradient(circle at center, #66FF99 0%, #ffffff 50%, #04443C 100%)',
-                filter: 'blur(40px)',
-                transformOrigin: 'center center',
-                willChange: 'transform',
-              }}
-            ></span>
           </span>
         </h1>
         <p ref={subRef} className="text-lg md:text-2xl text-white/80 max-w-xl mb-8">Vittmoney turns chaos into clarity.<br/>See what matters. Cut the noise. Grow smarter.</p>
