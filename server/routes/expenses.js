@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Expense = require("../Models/Expense");
 const authMiddleware = require("../middleware/auth");
+const { classifyExpense } = require("../services/nlpService");
 
 // Create Expense
 router.post("/", authMiddleware, async (req, res) => {
@@ -19,6 +20,34 @@ router.post("/", authMiddleware, async (req, res) => {
       date,
       paymentMethod: paymentMethod || "other",
     });
+
+    // 🔥 async ML classification (non-blocking with timeout + error handling)
+    const classifyPromise = classifyExpense(description);
+
+    // Add 8 second timeout to prevent hanging
+    Promise.race([
+      classifyPromise,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Classification timeout (>8s)")),
+          8000
+        )
+      ),
+    ])
+      .then((result) => {
+        // Only update if confidence is high enough
+        if (result && result.confidence >= 0.6) {
+          Expense.findByIdAndUpdate(expense._id, {
+            category: result.category,
+          }).exec();
+        }
+      })
+      .catch((err) => {
+        // Log but don't crash - user can set category manually
+        console.warn(
+          `Classification skipped for expense ${expense._id}: ${err.message}`
+        );
+      });
 
     res.status(201).json(expense);
   } catch (err) {
@@ -105,6 +134,36 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Delete expense error:", err);
     res.status(500).json({ message: "Failed to delete expense" });
+  }
+});
+
+// Classify Expense using ML service
+router.post("/classify", authMiddleware, async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ message: "Text field is required" });
+    }
+
+    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+    const response = await fetch(`${ML_SERVICE_URL}/classify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`ML service error: ${response.statusText}`);
+    }
+
+    const classificationResult = await response.json();
+    res.json(classificationResult);
+  } catch (err) {
+    console.error("Classify expense error:", err);
+    res.status(500).json({ message: "Failed to classify expense" });
   }
 });
 

@@ -264,8 +264,13 @@ export default function AuthModal({ open, onOpenChange, type }: {
         <div className="flex flex-col gap-2 md:gap-3 relative z-10">
           <Button
             onClick={() => {
+              const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+              if (!apiBase) {
+                alert("API configuration missing. Please set NEXT_PUBLIC_API_BASE in environment variables.");
+                return;
+              }
               // Redirect to backend Google OAuth endpoint
-              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "https://vittmoney-ai-backend.onrender.com/api") + "/google";
+              window.location.href = apiBase + "/google";
             }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"
@@ -274,8 +279,13 @@ export default function AuthModal({ open, onOpenChange, type }: {
           </Button>
           <Button
             onClick={() => {
+              const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+              if (!apiBase) {
+                alert("API configuration missing. Please set NEXT_PUBLIC_API_BASE in environment variables.");
+                return;
+              }
               // Redirect to backend GitHub OAuth endpoint
-              window.location.href = (process.env.NEXT_PUBLIC_API_BASE || "https://vittmoney-ai-backend.onrender.com/api") + "/github";
+              window.location.href = apiBase + "/github";
             }}
             variant="secondary"
             className="w-full hover:bg-white/10 text-xs md:text-sm py-2.5 md:py-3 flex items-center justify-center gap-2"

@@ -42,6 +42,7 @@ export default function ExpensesPage() {
   const formRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const expenseItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -49,6 +50,7 @@ export default function ExpensesPage() {
     description: "",
     date: new Date().toISOString().split("T")[0],
     paymentMethod: "other",
+    category: "",
   });
 
   // Fetch expenses
@@ -82,9 +84,47 @@ export default function ExpensesPage() {
     }
   };
 
+  // Auto-poll for classified expenses (every 2 seconds)
+  const startPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const data = await apiFetch(`/expenses?limit=10&page=${pagination.page}`);
+        // Update expenses to show newly classified ones
+        setExpenses(data.data);
+        
+        // Check if any unclassified expenses exist
+        const hasUnclassified = data.data.some((exp: Expense) => !exp.category);
+        
+        // Stop polling if all are classified
+        if (!hasUnclassified && pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      } catch (error) {
+        console.error("Error polling expenses:", error);
+      }
+    }, 2000); // Poll every 2 seconds
+  };
+
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
   // Fetch expenses on component mount
   useEffect(() => {
     fetchExpenses();
+    
+    // Cleanup on unmount
+    return () => {
+      stopPolling();
+    };
   }, []);
 
   // GSAP intro animations
@@ -138,11 +178,13 @@ export default function ExpensesPage() {
 
     try {
       setSubmitting(true);
+
       const newExpense = await apiFetch("/expenses", {
         method: "POST",
         body: JSON.stringify({
           ...formData,
           amount: parseFloat(formData.amount),
+          category: formData.category || null, // Use manual if set, else null for server to classify
         }),
       });
 
@@ -152,7 +194,12 @@ export default function ExpensesPage() {
         description: "",
         date: new Date().toISOString().split("T")[0],
         paymentMethod: "other",
+        category: "",
       });
+      
+      // Start polling to show category as soon as it's classified
+      startPolling();
+      
       toast.success("Expense added successfully!");
     } catch (error) {
       console.error("Error adding expense:", error);
@@ -334,6 +381,30 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
+              {/* Category (Optional Override) */}
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-2 ${textPrimaryClass}`}
+                >
+                  Category <span className="text-xs text-gray-400">(Optional - AI will auto-classify)</span>
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#66FF99] transition-all ${inputBgClass}`}
+                >
+                  <option value="">Auto-classify</option>
+                  <option value="Food">Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Bills">Bills</option>
+                  <option value="Health">Health</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
               {/* Submit Button */}
               <button
                 type="submit"
@@ -438,17 +509,19 @@ export default function ExpensesPage() {
                         >
                           {expense.paymentMethod}
                         </span>
-                        {expense.category && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs ${
-                              theme === "light"
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs ${
+                            expense.category
+                              ? theme === "light"
                                 ? "bg-blue-100/50 text-blue-600"
                                 : "bg-blue-900/30 text-blue-300"
-                            }`}
-                          >
-                            {expense.category}
-                          </span>
-                        )}
+                              : theme === "light"
+                              ? "bg-gray-200/50 text-gray-600 animate-pulse"
+                              : "bg-gray-700/30 text-gray-400 animate-pulse"
+                          }`}
+                        >
+                          {expense.category ?? "Classifying…"}
+                        </span>
                       </div>
                     </div>
 

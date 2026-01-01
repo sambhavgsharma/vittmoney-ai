@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Card from "@/components/Card";
 import { Input } from "@/components/ui/input";
 import { useSwitchMode } from "@/components/SwitchMode";
 import { safeLocalStorage } from "@/lib/safeLocalStorage";
-import { useRouter } from "next/navigation";
 
 interface User {
   name: string;
@@ -151,13 +152,13 @@ export default function DashboardTopBar() {
             )}
           </button>
           {/* Avatar */}
-          <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 ${theme === 'light' ? 'border-[#99FF77]' : 'border-[#66FF99]'} shadow-md bg-white/10 flex items-center justify-center`}> 
+          <Link href="/dashboard/settings" className={`w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 ${theme === 'light' ? 'border-[#99FF77]' : 'border-[#66FF99]'} shadow-md bg-white/10 flex items-center justify-center hover:shadow-lg transition-shadow`}> 
             {user && user.profilePic ? (
               <img src={user.profilePic} alt="User Avatar" className="w-full h-full object-cover" />
             ) : (
               <span className={`text-lg font-bold ${theme === 'light' ? 'text-[#1e1a2b]/50' : 'text-white/50'}`}>{user?.name?.[0] || "U"}</span>
             )}
-          </div>
+          </Link>
           {/* Name & Email */}
           <div className="flex flex-col items-start justify-center ml-1">
             <span className={`text-xs md:text-sm font-semibold leading-tight truncate max-w-[90px] md:max-w-[120px] ${theme === 'light' ? 'text-[#1e1a2b]' : 'text-white'}`}>{user?.name || "User"}</span>
@@ -167,7 +168,7 @@ export default function DashboardTopBar() {
         {/* Mobile: Only Avatar, opens dropdown */}
         <div className="md:hidden relative">
           <button
-            className={`w-9 h-9 rounded-full overflow-hidden border-2 ${theme === 'light' ? 'border-[#99FF77]' : 'border-[#66FF99]'} shadow-md bg-white/10 flex items-center justify-center`}
+            className={`w-9 h-9 rounded-full overflow-hidden border-2 ${theme === 'light' ? 'border-[#99FF77]' : 'border-[#66FF99]'} shadow-md bg-white/10 flex items-center justify-center hover:shadow-lg transition-shadow`}
             aria-label="Open user menu"
             onClick={() => setDropdownOpen((v) => !v)}
           >
@@ -184,6 +185,14 @@ export default function DashboardTopBar() {
                 <span className={`text-sm font-semibold ${theme === 'light' ? 'text-[#1e1a2b]' : 'text-white'}`}>{user?.name || "User"}</span>
                 <span className={`text-xs ${theme === 'light' ? 'text-[#1e1a2b]/60' : 'text-white/60'}`}>{user?.email || "user@email.com"}</span>
               </div>
+              <Link
+                href="/dashboard/settings"
+                className={`flex items-center gap-2 px-2 py-2 rounded transition-colors text-sm ${theme === 'light' ? 'text-[#1e1a2b] hover:bg-[#99FF77]/10' : 'text-white hover:bg-[#66FF99]/10'}`}
+                onClick={() => setDropdownOpen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Settings
+              </Link>
               <button
                 className={`flex items-center justify-between px-2 py-2 rounded transition-colors ${theme === 'light' ? 'text-[#1e1a2b] hover:bg-[#99FF77]/10' : 'text-white hover:bg-[#66FF99]/10'}`}
                 onClick={toggleTheme}

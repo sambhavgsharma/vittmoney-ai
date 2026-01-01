@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Schibsted_Grotesk } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 
 const schibstedGrotesk = Schibsted_Grotesk({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased ${schibstedGrotesk.className}`}>
+        <Toaster position="top-center" reverseOrder={false} />
         {children}
       </body>
     </html>

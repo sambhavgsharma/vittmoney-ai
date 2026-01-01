@@ -137,3 +137,72 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Environment files (CRITICAL - Never commit these!)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+
+# ML Model cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+ENV/
+
+# Docker artifacts (but keep dockerfiles)
+.docker/
+.dockerignore
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files
+server/uploads/profile-pics/*
+!server/uploads/profile-pics/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Logs (extra coverage)
+logs/
+*.log
+
+# Process locks
+.pidfile
+pids/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Performance/profiling
+perf/
+profile/

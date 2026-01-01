@@ -44,6 +44,14 @@ const userSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    deleteAccountToken: {
+        type: String,
+        default: null
+    },
+    deleteAccountTokenExpiry: {
+        type: Date,
+        default: null
     }
 });
 

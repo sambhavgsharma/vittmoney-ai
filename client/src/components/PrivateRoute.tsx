@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
 import Loader from "../components/Loader";
 import { safeLocalStorage } from "@/lib/safeLocalStorage";
