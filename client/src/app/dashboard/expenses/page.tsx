@@ -57,6 +57,18 @@ export default function ExpensesPage() {
   const fetchExpenses = async (page: number = 1) => {
     try {
       setLoading(true);
+      
+      // First, classify any pending expenses
+      try {
+        await apiFetch("/expenses/classify-pending", {
+          method: "POST",
+        });
+      } catch (err) {
+        // Don't fail if classification fails - just log it
+        console.warn("Could not classify pending expenses:", err);
+      }
+      
+      // Then fetch updated expenses
       const data = await apiFetch(`/expenses?limit=10&page=${page}`);
       setExpenses(data.data);
       setPagination(data.pagination);

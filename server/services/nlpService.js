@@ -1,8 +1,8 @@
 const axios = require("axios");
 const crypto = require("crypto");
 
-const NLP_SERVICE_URL =
-  process.env.NLP_SERVICE_URL || "http://localhost:8000";
+const ML_SERVICE_URL =
+  process.env.ML_SERVICE_URL || "http://localhost:7860";
 
 /**
  * LRU Cache for expense classifications
@@ -72,7 +72,7 @@ async function classifyExpense(text) {
 
     // Step 2: Make API request to ML service
     const res = await axios.post(
-      `${NLP_SERVICE_URL}/classify`,
+      `${ML_SERVICE_URL}/classify`,
       { text },
       {
         timeout: 8000, // 8 second timeout

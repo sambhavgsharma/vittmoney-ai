@@ -146,7 +146,7 @@ router.post("/classify", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Text field is required" });
     }
 
-    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:7860";
     const response = await fetch(`${ML_SERVICE_URL}/classify`, {
       method: "POST",
       headers: {
@@ -164,6 +164,61 @@ router.post("/classify", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Classify expense error:", err);
     res.status(500).json({ message: "Failed to classify expense" });
+  }
+});
+
+// Classify all pending expenses for user (used when page loads)
+router.post("/classify-pending", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Find all unclassified expenses for this user
+    const pendingExpenses = await Expense.find({
+      userId,
+      category: { $in: [null, "", undefined] },
+    }).limit(50); // Limit to 50 per request to avoid overload
+
+    if (pendingExpenses.length === 0) {
+      return res.json({
+        message: "No pending expenses to classify",
+        count: 0,
+      });
+    }
+
+    // Classify each one
+    for (const expense of pendingExpenses) {
+      try {
+        const result = await classifyExpense(expense.description);
+        
+        // Only update if we got a result with high confidence
+        if (result && result.confidence >= 0.5) {
+          await Expense.findByIdAndUpdate(expense._id, {
+            category: result.category,
+          });
+          console.log(
+            `✅ Classified pending expense: ${expense.description} → ${result.category}`
+          );
+        }
+      } catch (err) {
+        console.warn(
+          `Failed to classify pending expense ${expense._id}: ${err.message}`
+        );
+      }
+    }
+
+    // Return updated expenses
+    const updatedExpenses = await Expense.find({ userId })
+      .sort({ date: -1 })
+      .limit(10);
+
+    res.json({
+      message: `Successfully classified ${pendingExpenses.length} pending expenses`,
+      count: pendingExpenses.length,
+      expenses: updatedExpenses,
+    });
+  } catch (err) {
+    console.error("Classify pending expenses error:", err);
+    res.status(500).json({ message: "Failed to classify pending expenses" });
   }
 });
 
