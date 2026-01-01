@@ -12,3 +12,17 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+
+  - type: web
+    name: vittmoney-ml
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port 10000 --workers 1
+    rootDir: ml
+    envVars:
+      - key: TRANSFORMERS_NO_ADVISORY_WARNINGS
+        value: "1"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
+      - key: OMP_NUM_THREADS
+        value: "1"
