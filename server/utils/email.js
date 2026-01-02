@@ -46,11 +46,19 @@ const sendEmail = async (to, subject, html) => {
       html,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
+    console.log(`📨 Sending email to ${to}...`);
+    
+    // Add timeout to email sending
+    const sendPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Email send timeout (>5s)')), 5000)
+    );
+    
+    const info = await Promise.race([sendPromise, timeoutPromise]);
+    console.log('✅ Email sent:', info.response);
     return info;
   } catch (error) {
-    console.error('Email sending error:', error.message);
+    console.error('❌ Email sending error:', error.message);
     throw error;
   }
 };

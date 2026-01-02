@@ -78,21 +78,28 @@ const CTASection = () => {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE;
       if (!apiBase) {
         toast.error("API configuration missing");
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`${apiBase}/contact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await Promise.race([
+        fetch(`${apiBase}/contact`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        }),
+        new Promise<Response>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), 10000)
+        )
+      ]) as Response;
 
       const data = await response.json();
 
       if (!response.ok) {
         toast.error(data.error || "Failed to send message");
+        setLoading(false);
         return;
       }
 
@@ -107,10 +114,14 @@ const CTASection = () => {
       if (formRef.current) {
         formRef.current.reset();
       }
+      
+      setLoading(false);
     } catch (error) {
       console.error("Contact form error:", error);
-      toast.error("An error occurred. Please try again later.");
-    } finally {
+      const errorMessage = error instanceof Error && error.message === 'Request timeout' 
+        ? "Request timed out. Please try again."
+        : "An error occurred. Please try again later.";
+      toast.error(errorMessage);
       setLoading(false);
     }
   };

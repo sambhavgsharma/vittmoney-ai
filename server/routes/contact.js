@@ -41,11 +41,35 @@ router.post('/contact', async (req, res) => {
       });
     }
 
-    // Send email to admin
-    await sendContactFormEmail({ name, email, message });
+    console.log(`📧 Sending contact form email from ${email}...`);
+    
+    // Send email to admin with timeout
+    try {
+      await Promise.race([
+        sendContactFormEmail({ name, email, message }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Email send timeout')), 8000)
+        )
+      ]);
+      console.log(`✅ Admin email sent successfully`);
+    } catch (emailErr) {
+      console.error(`❌ Failed to send admin email:`, emailErr.message);
+      // Don't fail entirely if admin email fails, but log it
+    }
 
     // Send confirmation email to user
-    await sendContactConfirmationEmail(email, name);
+    try {
+      await Promise.race([
+        sendContactConfirmationEmail(email, name),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Email send timeout')), 8000)
+        )
+      ]);
+      console.log(`✅ Confirmation email sent to user`);
+    } catch (emailErr) {
+      console.error(`⚠️ Failed to send confirmation email:`, emailErr.message);
+      // Continue even if confirmation email fails
+    }
 
     res.status(200).json({ 
       success: true,
