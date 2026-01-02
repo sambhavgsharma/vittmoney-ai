@@ -1,5 +1,11 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+// Validate Gemini API key on startup
+if (!process.env.GEMINI_API_KEY) {
+  console.error('⚠️  WARNING: GEMINI_API_KEY not set. AI verdict will not work.');
+  console.error('   Please set GEMINI_API_KEY environment variable in your deployment platform.');
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
@@ -30,31 +36,37 @@ Rules:
  */
 async function generateVerdict(userQuestion, retrievedFacts) {
   try {
+    // Check if API key is configured
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured. Please set it in your environment variables.');
+    }
+
     // Construct prompt
     const prompt = PROMPT_TEMPLATE.replace(
       "{{retrieved_facts}}",
       retrievedFacts.join("\n")
     ).replace("{{user_question}}", userQuestion);
 
-    // Try Gemini 1.5 Pro as it's more stable
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return text;
-    } catch (err) {
-      // Fallback if 1.5-pro fails
-      if (err.message && err.message.includes("429")) {
-        // Rate limited - use local analysis
-        console.warn("⚠️ Gemini API rate limited, using local analysis");
-        return generateLocalAnalysis(userQuestion, retrievedFacts);
-      }
-      throw err;
-    }
+    // Call Gemini API
+    console.log('🔄 Calling Gemini API for financial verdict...');
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    console.log('✅ Gemini API response received');
+    return text;
   } catch (err) {
-    console.error("Error in LLM service:", err.message);
-    // Fallback to local analysis if API fails
-    return generateLocalAnalysis(userQuestion, retrievedFacts);
+    console.error('❌ Error in LLM service:', {
+      message: err.message,
+      code: err.code,
+      apiKeyConfigured: !!process.env.GEMINI_API_KEY
+    });
+    
+    // Return a helpful error message instead of fake analysis
+    const errorMessage = !process.env.GEMINI_API_KEY 
+      ? 'AI insights are temporarily unavailable. Please ensure GEMINI_API_KEY is properly configured in your environment variables.'
+      : `AI insights are temporarily unavailable (${err.message}). Please check your Gemini API quota or try again later.`;
+    
+    throw new Error(errorMessage);
   }
 }
 

@@ -17,6 +17,7 @@ interface User {
   profilePic?: string;
   provider: string;
   createdAt: string;
+  preferredCurrency?: string;
 }
 
 export default function SettingsPage() {
@@ -25,6 +26,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("INR");
+  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
   const router = useRouter();
 
   // Fetch user data
@@ -49,7 +52,8 @@ export default function SettingsPage() {
         }
 
         const data = await response.json();
-        setUser(data.user);
+        setUser(data);
+        setSelectedCurrency(data.preferredCurrency || "INR");
       } catch (error) {
         console.error("Error fetching user:", error);
         toast.error("Failed to load settings");
@@ -60,6 +64,40 @@ export default function SettingsPage() {
 
     fetchUser();
   }, [router]);
+
+  const handleCurrencyChange = async (currency: string) => {
+    try {
+      setIsSavingCurrency(true);
+      const token = safeLocalStorage.get("token");
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+
+      const response = await fetch(`${apiBase}/currency`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currency }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update currency");
+      }
+
+      setSelectedCurrency(currency);
+      toast.success("Currency preference updated");
+      
+      // Refresh user data
+      if (user) {
+        setUser({ ...user, preferredCurrency: currency });
+      }
+    } catch (error) {
+      console.error("Error updating currency:", error);
+      toast.error("Failed to update currency preference");
+    } finally {
+      setIsSavingCurrency(false);
+    }
+  };
 
   const handleLogout = () => {
     safeLocalStorage.remove("token");
@@ -80,7 +118,8 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        setUser(data);
+        setSelectedCurrency(data.preferredCurrency || "INR");
       }
     } catch (error) {
       console.error("Error refreshing user:", error);
@@ -384,6 +423,64 @@ export default function SettingsPage() {
               >
                 Coming Soon
               </span>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Preferences Section */}
+      <div>
+        <h3
+          className={`text-lg font-semibold mb-4 ${
+            theme === "light" ? "text-[#1e1a2b]" : "text-white"
+          }`}
+        >
+          Preferences
+        </h3>
+        <div className="space-y-3">
+          {/* Currency Settings */}
+          <Card
+            className={`border p-4 ${
+              theme === "light"
+                ? "bg-white/50 border-[#99FF77]/40"
+                : "bg-white/5 border-[#66FF99]/20"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h4
+                  className={`font-semibold mb-1 ${
+                    theme === "light" ? "text-[#1e1a2b]" : "text-white"
+                  }`}
+                >
+                  Preferred Currency
+                </h4>
+                <p
+                  className={`text-sm ${
+                    theme === "light"
+                      ? "text-[#1e1a2b]/60"
+                      : "text-white/60"
+                  }`}
+                >
+                  Choose your default currency for all displays
+                </p>
+              </div>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                disabled={isSavingCurrency}
+                className={`px-3 py-2 rounded-lg border font-medium text-sm ml-4 transition-all ${
+                  theme === "light"
+                    ? "bg-white border-[#1e1a2b]/20 text-[#1e1a2b] hover:border-[#1e1a2b]/40"
+                    : "bg-white/10 border-white/20 text-white hover:border-white/40"
+                } ${isSavingCurrency ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                <option value="INR">₹ INR (Indian Rupee)</option>
+                <option value="USD">$ USD (US Dollar)</option>
+                <option value="EUR">€ EUR (Euro)</option>
+                <option value="GBP">£ GBP (British Pound)</option>
+                <option value="JPY">¥ JPY (Japanese Yen)</option>
+              </select>
             </div>
           </Card>
         </div>

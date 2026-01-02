@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema({
     deleteAccountTokenExpiry: {
         type: Date,
         default: null
+    },
+    preferredCurrency: {
+        type: String,
+        enum: ['INR', 'USD', 'EUR', 'GBP', 'JPY'],
+        default: 'INR'
     }
 });
 

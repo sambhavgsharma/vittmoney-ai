@@ -278,4 +278,72 @@ router.post("/confirm-delete-account", authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/users/currency
+ * Update user's preferred currency
+ * Requires authentication
+ */
+router.put("/currency", authMiddleware, async (req, res) => {
+  try {
+    const { currency } = req.body;
+    const userId = req.user.id;
+
+    // Validate input
+    const validCurrencies = ['INR', 'USD', 'EUR', 'GBP', 'JPY'];
+    if (!currency || !validCurrencies.includes(currency)) {
+      return res.status(400).json({ 
+        message: `Invalid currency. Allowed values: ${validCurrencies.join(', ')}` 
+      });
+    }
+
+    // Find and update user
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { preferredCurrency: currency },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.json({
+      message: "Currency preference updated successfully.",
+      preferredCurrency: user.preferredCurrency
+    });
+  } catch (err) {
+    console.error("Error updating currency:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+/**
+ * GET /api/users/me
+ * Get current user profile including currency preference
+ * Requires authentication
+ */
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      profilePic: user.profilePic,
+      provider: user.provider,
+      preferredCurrency: user.preferredCurrency || 'INR'
+    });
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 module.exports = router;

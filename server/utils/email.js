@@ -34,8 +34,14 @@ const createTransporter = () => {
  */
 const sendEmail = async (to, subject, html) => {
   try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      throw new Error('Email configuration missing. Please set EMAIL_USER and EMAIL_PASSWORD in .env');
+    // Validate environment variables
+    if (!process.env.EMAIL_USER) {
+      console.error('❌ EMAIL_USER environment variable not set');
+      throw new Error('Email configuration missing: EMAIL_USER not set. Please configure it on your deployment platform.');
+    }
+    if (!process.env.EMAIL_PASSWORD) {
+      console.error('❌ EMAIL_PASSWORD environment variable not set');
+      throw new Error('Email configuration missing: EMAIL_PASSWORD not set. Please configure it on your deployment platform.');
     }
 
     const transporter = createTransporter();
@@ -46,7 +52,7 @@ const sendEmail = async (to, subject, html) => {
       html,
     };
 
-    console.log(`📨 Sending email to ${to}...`);
+    console.log(`📨 Sending email to ${to} from ${process.env.EMAIL_USER}...`);
     
     // Add timeout to email sending
     const sendPromise = transporter.sendMail(mailOptions);
@@ -55,10 +61,15 @@ const sendEmail = async (to, subject, html) => {
     );
     
     const info = await Promise.race([sendPromise, timeoutPromise]);
-    console.log('✅ Email sent:', info.response);
+    console.log('✅ Email sent successfully:', info.response);
     return info;
   } catch (error) {
-    console.error('❌ Email sending error:', error.message);
+    console.error('❌ Email sending error:', {
+      message: error.message,
+      code: error.code,
+      emailUser: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+      emailPassword: process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET'
+    });
     throw error;
   }
 };

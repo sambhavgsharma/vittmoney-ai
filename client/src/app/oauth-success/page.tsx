@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import Loader from "../../components/Loader";
@@ -7,16 +7,26 @@ import { safeLocalStorage } from "@/lib/safeLocalStorage";
 
 export default function OAuthSuccessPage() {
   const router = useRouter();
+  const toastIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     if (token) {
       safeLocalStorage.set("token", token);
-      toast.success("Logged in. Redirecting...");
-      setTimeout(() => {
+      // Show toast and get the toast ID
+      toastIdRef.current = toast.success("Logged in. Redirecting...");
+      
+      // Redirect after 1 second
+      const timeout = setTimeout(() => {
+        // Dismiss the toast before redirecting
+        if (toastIdRef.current) {
+          toast.dismiss(toastIdRef.current);
+        }
         router.replace("/dashboard");
-      }, 1200);
+      }, 1000);
+      
+      return () => clearTimeout(timeout);
     } else {
       router.replace("/");
     }
