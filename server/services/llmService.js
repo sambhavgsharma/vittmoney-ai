@@ -1,5 +1,3 @@
-const fetch = require("node-fetch");
-
 // HuggingFace Configuration
 const HF_API_KEY = process.env.HF_API_KEY;
 const HF_MODEL = process.env.HF_MODEL || "mistralai/Mistral-7B-Instruct-v0.2";

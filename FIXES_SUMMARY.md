@@ -52,40 +52,84 @@ All 5 critical production issues have been identified, fixed, and deployed. The 
 
 ---
 
-### ✅ Issue #3: AI Verdict Shows Local Analysis Instead of Gemini
-**Problem:** User gets error "models/gemini-1.5-flash is not found" or "Note: This is a local analysis..." instead of actual AI insights from Gemini API.
+### ✅ Issue #3: AI Verdict - Migration to HuggingFace Mistral
+**Problem:** Gemini API had model availability issues (404 errors) and free tier quota limitations.
 
-**Root Cause:** 
-- Gemini API key (`GEMINI_API_KEY`) was missing or invalid, causing fallback to local analysis
-- Model `gemini-1.5-flash` may not be available with the API key tier
+**Solution - Production Architecture:**
+Implemented a **three-tier fallback system**:
+1. **Primary**: HuggingFace Mistral API (free, reliable, no quota)
+2. **Secondary**: Gemini API (optional, disabled by default)
+3. **Tertiary**: Local heuristic analysis (always available)
 
-**Solution:**
-- Added validation at service startup to check if `GEMINI_API_KEY` is set
-- Implemented **fallback model strategy**: tries multiple models in order
-  - First tries: `gemini-2.0-flash` (newest)
-  - Then: `gemini-1.5-pro` (more capable)
-  - Then: `gemini-1.5-flash` (fast, cost-effective)
-  - Finally: `gemini-pro` (legacy fallback)
-- Removed local analysis fallback entirely - now throws clear error message
-- Added detailed logging showing which model is being tried and why it failed
-- Better error messages for API key vs model availability issues
+**Benefits:**
+- ✅ No more 404 "model not found" errors
+- ✅ Free tier with generous rate limits
+- ✅ No API quota issues
+- ✅ Production-ready resilience
+- ✅ Never fails - always falls back to local analysis
+- ✅ Gemini now optional (can be disabled)
+
+**Architecture:**
+```
+User Question
+    ↓
+Build Prompt (facts + embeddings)
+    ↓
+Try HuggingFace Mistral API ──→ Success? Return response
+    ↓ (fails)
+Try Gemini API (if enabled) ──→ Success? Return response
+    ↓ (fails)
+Generate Local Analysis ──→ Always returns response
+```
 
 **Files Modified:**
-- `server/services/llmService.js` - Multi-model fallback system
+- `server/services/llmService.js` - Complete rewrite with three-tier system
 
-**Action Required:**
-1. Get a valid Gemini API key from: https://makersuite.google.com/app/apikey
-2. Go to Render Dashboard → Select `vittmoney-ai` backend service
-3. Go to **Environment** → **Environment Variables**
-4. Add: `GEMINI_API_KEY`: Your API key
-5. Redeploy the service
+**Environment Variables:**
+```bash
+# Required:
+HF_API_KEY=hf_xxxxxxxxxxxxxxxxx          # From https://huggingface.co/settings/tokens
+HF_MODEL=mistralai/Mistral-7B-Instruct-v0.2  # Default, can change
 
-**Note:** If you get "model not found" error:
-- Your API key may be on the free tier with limited model access
-- Try upgrading your plan at: https://console.cloud.google.com/billing
-- Or create a new API key from a different Google account
+# Optional (disabled by default):
+ENABLE_GEMINI=false                       # Set to 'true' if you want Gemini as fallback
+GEMINI_API_KEY=your-key-here             # Only needed if ENABLE_GEMINI=true
+```
 
-**Commits:** `91ac520`, `605192c`
+**Setup Steps:**
+
+1. **Get HuggingFace API Token:**
+   - Go to: https://huggingface.co/settings/tokens
+   - Click "New token"
+   - Select "Read" access
+   - Copy token (starts with `hf_...`)
+
+2. **Update Render Environment Variables:**
+   - Go to Render Dashboard → Backend service → Settings → Environment
+   - Add: `HF_API_KEY` = Your token from step 1
+   - Add: `HF_MODEL` = `mistralai/Mistral-7B-Instruct-v0.2`
+   - (Optional) Set `ENABLE_GEMINI=false` to disable Gemini completely
+   - Redeploy service
+
+3. **Test It:**
+   - Ask the AI a question about your expenses
+   - Should see "Using HuggingFace" in logs
+   - If HF fails, will try Gemini (if enabled) or local analysis
+
+**Local Fallback Analysis:**
+Even if both APIs fail, users still get:
+- Total spending calculation
+- Average transaction amount
+- Top spending categories
+- Actionable insights based on their data
+- This provides value with zero external dependencies
+
+**Model Selection:**
+- **Recommended:** `mistralai/Mistral-7B-Instruct-v0.2` (best balance)
+- **Alternative:** `mistralai/Mistral-7B-Instruct` (slightly older)
+- ❌ Don't use: Mixtral, base models, or untuned variants
+
+**Commits:** `91ac520`, `605192c`, `3eb3a71`
 
 ---
 
@@ -156,9 +200,9 @@ All 5 critical production issues have been identified, fixed, and deployed. The 
 
 ### Backend Changes
 ```
+✓ Migrated from Gemini to HuggingFace Mistral (primary LLM)
+✓ Implemented three-tier fallback system (HF → Gemini → Local)
 ✓ Enhanced email validation with detailed logging
-✓ Removed Gemini API fallback to local analysis
-✓ Added currency management endpoints
 ✓ Added strict amount validation (0.01 to 99,999,999)
 ✓ Added input sanitization for all expense fields
 ✓ Added currency conversion utilities
@@ -188,14 +232,19 @@ All 5 critical production issues have been identified, fixed, and deployed. The 
 Set these in your backend service's Environment Variables:
 
 ```bash
+# HuggingFace Mistral API (Primary LLM - REQUIRED)
+HF_API_KEY=hf_xxxxxxxxxxxxxxxxx
+HF_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+
 # Gmail Email Configuration (for contact form and account emails)
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-password-from-google
 
-# Gemini API Key (for AI financial insights)
-GEMINI_API_KEY=your-gemini-api-key
+# Gemini API Key (Optional - only if ENABLE_GEMINI=true)
+ENABLE_GEMINI=false
+GEMINI_API_KEY=your-gemini-api-key  # Only needed if ENABLE_GEMINI=true
 
-# (Keep all existing variables)
+# Other variables (keep existing ones)
 MONGODB_URI=...
 JWT_SECRET=...
 ML_SERVICE_URL=https://sambhavgsharma-vittmoney-ai.hf.space
@@ -203,16 +252,26 @@ ML_SERVICE_URL=https://sambhavgsharma-vittmoney-ai.hf.space
 ```
 
 **Getting Credentials:**
-1. **Gmail App Password:**
+
+1. **HuggingFace API Token:**
+   - Go to: https://huggingface.co/settings/tokens
+   - Click "New token"
+   - Select "Read" access
+   - Copy the token (starts with `hf_`)
+   - Paste as `HF_API_KEY`
+
+2. **Gmail App Password:**
    - Enable 2FA on Google account
    - Go to https://myaccount.google.com/apppasswords
    - Select "Mail" and "Windows Computer"
    - Copy the generated 16-character password
+   - Paste as `EMAIL_PASSWORD`
 
-2. **Gemini API Key:**
+3. **Gemini API Key (Optional):**
+   - Only needed if you want Gemini as fallback
    - Go to https://makersuite.google.com/app/apikey
    - Create new API key
-   - Copy it
+   - Set `ENABLE_GEMINI=true` and paste key as `GEMINI_API_KEY`
 
 ---
 
