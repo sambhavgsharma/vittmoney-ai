@@ -53,18 +53,25 @@ All 5 critical production issues have been identified, fixed, and deployed. The 
 ---
 
 ### ✅ Issue #3: AI Verdict Shows Local Analysis Instead of Gemini
-**Problem:** User gets message "Note: This is a local analysis. For AI-powered insights, please check your API quota." instead of actual AI insights from Gemini API.
+**Problem:** User gets error "models/gemini-1.5-flash is not found" or "Note: This is a local analysis..." instead of actual AI insights from Gemini API.
 
-**Root Cause:** Gemini API key (`GEMINI_API_KEY`) was missing or invalid, causing fallback to local analysis generation.
+**Root Cause:** 
+- Gemini API key (`GEMINI_API_KEY`) was missing or invalid, causing fallback to local analysis
+- Model `gemini-1.5-flash` may not be available with the API key tier
 
 **Solution:**
 - Added validation at service startup to check if `GEMINI_API_KEY` is set
-- Removed local analysis fallback - now throws clear error message
-- Added detailed logging of API key configuration status
-- Provides user-friendly error messages
+- Implemented **fallback model strategy**: tries multiple models in order
+  - First tries: `gemini-2.0-flash` (newest)
+  - Then: `gemini-1.5-pro` (more capable)
+  - Then: `gemini-1.5-flash` (fast, cost-effective)
+  - Finally: `gemini-pro` (legacy fallback)
+- Removed local analysis fallback entirely - now throws clear error message
+- Added detailed logging showing which model is being tried and why it failed
+- Better error messages for API key vs model availability issues
 
 **Files Modified:**
-- `server/services/llmService.js` - Removed fallback, added validation
+- `server/services/llmService.js` - Multi-model fallback system
 
 **Action Required:**
 1. Get a valid Gemini API key from: https://makersuite.google.com/app/apikey
@@ -73,7 +80,12 @@ All 5 critical production issues have been identified, fixed, and deployed. The 
 4. Add: `GEMINI_API_KEY`: Your API key
 5. Redeploy the service
 
-**Commit:** `91ac520`
+**Note:** If you get "model not found" error:
+- Your API key may be on the free tier with limited model access
+- Try upgrading your plan at: https://console.cloud.google.com/billing
+- Or create a new API key from a different Google account
+
+**Commits:** `91ac520`, `605192c`
 
 ---
 
