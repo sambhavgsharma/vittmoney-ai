@@ -185,10 +185,42 @@ export default function ExpensesPage() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // Special handling for amount input
+    if (name === "amount") {
+      // Remove non-numeric characters except decimal point
+      let cleanedValue = value.replace(/[^\d.]/g, "");
+      
+      // Prevent multiple decimal points
+      const decimalCount = (cleanedValue.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        cleanedValue = cleanedValue.replace(/\.(?=.*\.)/, "");
+      }
+      
+      // Convert to number and check limit
+      const numValue = parseFloat(cleanedValue);
+      if (!isNaN(numValue) && numValue > 99999999) {
+        toast.error("Amount cannot exceed 99,999,999");
+        cleanedValue = "99999999";
+      }
+      
+      setFormData((prev) => ({
+        ...prev,
+        [name]: cleanedValue,
+      }));
+    } else if (name === "description") {
+      // Limit description to 200 characters
+      const trimmed = value.substring(0, 200);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: trimmed,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   // Submit form
@@ -201,13 +233,28 @@ export default function ExpensesPage() {
     const date = formData.date;
 
     // Validate amount
-    if (!formData.amount || isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid amount greater than 0");
+    if (!formData.amount) {
+      toast.error("Please enter an amount");
+      return;
+    }
+    
+    if (isNaN(amount) || !Number.isFinite(amount)) {
+      toast.error("Amount must be a valid number");
+      return;
+    }
+    
+    if (amount <= 0) {
+      toast.error("Amount must be greater than 0");
+      return;
+    }
+    
+    if (amount > 99999999) {
+      toast.error("Amount cannot exceed 99,999,999 (limit set to prevent overflow)");
       return;
     }
 
     // Validate description
-    if (!description || description.length === 0) {
+    if (!description) {
       toast.error("Please enter a description");
       return;
     }
@@ -218,7 +265,7 @@ export default function ExpensesPage() {
     }
 
     if (description.length > 200) {
-      toast.error("Description must be less than 200 characters");
+      toast.error("Description cannot exceed 200 characters");
       return;
     }
 
@@ -377,17 +424,24 @@ export default function ExpensesPage() {
                   className={`block text-sm font-medium mb-2 ${textPrimaryClass}`}
                 >
                   Amount <span className="text-red-400">*</span>
+                  <span className={`text-xs ${textSecondaryClass} ml-1`}>
+                    (Max: 99,999,999)
+                  </span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   name="amount"
                   value={formData.amount}
                   onChange={handleInputChange}
                   placeholder="0.00"
-                  step="0.01"
-                  min="0"
+                  inputMode="decimal"
                   className={`w-full px-3 py-2.5 border rounded-lg backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#66FF99] transition-all ${inputBgClass}`}
                 />
+                {formData.amount && !isNaN(parseFloat(formData.amount)) && (
+                  <p className={`text-xs mt-1 ${textSecondaryClass}`}>
+                    {formatCurrency(parseFloat(formData.amount))}
+                  </p>
+                )}
               </div>
 
               {/* Description */}

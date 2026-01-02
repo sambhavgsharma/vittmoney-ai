@@ -11,7 +11,15 @@ const expenseSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: true,
-    min: 0,
+    min: [0.01, "Amount must be greater than 0"],
+    max: [99999999, "Amount cannot exceed 99,999,999"], // ~100 million limit
+    validate: {
+      validator: function(v) {
+        // Check for valid number, not NaN, not Infinity
+        return Number.isFinite(v) && v > 0 && v <= 99999999;
+      },
+      message: "Amount must be a valid number between 0.01 and 99,999,999"
+    }
   },
 
   currency: {

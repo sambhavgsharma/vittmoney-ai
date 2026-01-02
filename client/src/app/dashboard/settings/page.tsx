@@ -71,7 +71,7 @@ export default function SettingsPage() {
       const token = safeLocalStorage.get("token");
       const apiBase = process.env.NEXT_PUBLIC_API_BASE;
 
-      const response = await fetch(`${apiBase}/currency`, {
+      const response = await fetch(`${apiBase}/users/currency`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

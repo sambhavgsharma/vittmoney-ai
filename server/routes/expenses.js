@@ -9,20 +9,52 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const { amount, description, date, paymentMethod } = req.body;
 
+    // Validate required fields
     if (!amount || !description || !date) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res.status(400).json({ message: "Missing required fields: amount, description, date" });
+    }
+
+    // Validate and sanitize amount
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || !Number.isFinite(numAmount)) {
+      return res.status(400).json({ message: "Amount must be a valid number" });
+    }
+    if (numAmount <= 0) {
+      return res.status(400).json({ message: "Amount must be greater than 0" });
+    }
+    if (numAmount > 99999999) {
+      return res.status(400).json({ 
+        message: "Amount cannot exceed 99,999,999 (limit set to prevent overflow)" 
+      });
+    }
+
+    // Validate description
+    const trimmedDesc = String(description).trim();
+    if (trimmedDesc.length < 3) {
+      return res.status(400).json({ message: "Description must be at least 3 characters" });
+    }
+    if (trimmedDesc.length > 200) {
+      return res.status(400).json({ message: "Description cannot exceed 200 characters" });
+    }
+
+    // Validate date (not in future)
+    const expenseDate = new Date(date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (expenseDate > today) {
+      return res.status(400).json({ message: "Expense date cannot be in the future" });
     }
 
     const expense = await Expense.create({
       userId: req.user.id,
-      amount,
-      description,
-      date,
+      amount: numAmount,
+      description: trimmedDesc,
+      date: expenseDate,
       paymentMethod: paymentMethod || "other",
     });
 
     // 🔥 async ML classification (non-blocking with timeout + error handling)
-    const classifyPromise = classifyExpense(description);
+    const classifyPromise = classifyExpense(trimmedDesc);
 
     // Add 8 second timeout to prevent hanging
     Promise.race([
@@ -35,7 +67,7 @@ router.post("/", authMiddleware, async (req, res) => {
       ),
     ])
       .then((result) => {
-        console.log(`📊 Classification result for "${description.substring(0, 30)}...": ${JSON.stringify(result)}`);
+        console.log(`📊 Classification result for "${trimmedDesc.substring(0, 30)}...": ${JSON.stringify(result)}`);
         
         // Update category if we have a result (even with lower confidence)
         if (result && result.category && typeof result.category === "string") {
@@ -61,6 +93,13 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(201).json(expense);
   } catch (err) {
     console.error("Create expense error:", err);
+    
+    // Handle mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
     res.status(500).json({ message: "Failed to create expense" });
   }
 });
