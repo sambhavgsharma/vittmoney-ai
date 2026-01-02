@@ -47,13 +47,32 @@ async function generateVerdict(userQuestion, retrievedFacts) {
       retrievedFacts.join("\n")
     ).replace("{{user_question}}", userQuestion);
 
-    // Call Gemini API
-    console.log('🔄 Calling Gemini API for financial verdict...');
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    console.log('✅ Gemini API response received');
-    return text;
+    // Try models in order of preference
+    const modelsToTry = [
+      "gemini-2.0-flash",      // Newest model (if available)
+      "gemini-1.5-pro",        // More capable
+      "gemini-1.5-flash",      // Fast and cost-effective
+      "gemini-pro",            // Fallback
+    ];
+
+    let lastError = null;
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`🔄 Calling Gemini API with model: ${modelName}...`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        console.log(`✅ Gemini API response received from ${modelName}`);
+        return text;
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Model ${modelName} failed:`, err.message);
+        // Continue to next model
+      }
+    }
+
+    // If all models failed, throw the last error
+    throw lastError || new Error('All Gemini models failed');
   } catch (err) {
     console.error('❌ Error in LLM service:', {
       message: err.message,
@@ -61,10 +80,12 @@ async function generateVerdict(userQuestion, retrievedFacts) {
       apiKeyConfigured: !!process.env.GEMINI_API_KEY
     });
     
-    // Return a helpful error message instead of fake analysis
+    // Return a helpful error message
     const errorMessage = !process.env.GEMINI_API_KEY 
       ? 'AI insights are temporarily unavailable. Please ensure GEMINI_API_KEY is properly configured in your environment variables.'
-      : `AI insights are temporarily unavailable (${err.message}). Please check your Gemini API quota or try again later.`;
+      : err.message.includes('404')
+        ? 'Model not found. Your API key may not have access to Gemini models. Please ensure your API key is valid and has the required permissions.'
+        : `AI insights are temporarily unavailable (${err.message}). Please check your Gemini API quota or try again later.`;
     
     throw new Error(errorMessage);
   }
