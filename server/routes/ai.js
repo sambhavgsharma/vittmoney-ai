@@ -7,7 +7,7 @@ const { generateVerdict } = require("../services/llmService");
 const { buildForUser } = require("../jobs/buildKnowledgebase");
 const authMiddleware = require("../middleware/auth");
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:7860";
 const KNOWLEDGE_BASE_DIR = path.join(__dirname, "../knowledgebase");
 
 /**
@@ -161,20 +161,41 @@ router.post("/verdict", authMiddleware, async (req, res) => {
     }
 
     const userId = req.user.id;
+    console.log(`🤖 Processing AI verdict for user ${userId}: "${question}"`);
 
     // Step 1: Load user's knowledge base
-    const kb = loadUserKnowledgeBase(userId);
+    let kb = loadUserKnowledgeBase(userId);
+    
     if (!kb) {
-      return res.status(404).json({
-        message:
-          "No knowledge base found. Please run buildKnowledgebase job first.",
-      });
+      console.log(`📦 Knowledge base not found for user ${userId}. Building...`);
+      
+      // Build knowledge base synchronously if not found
+      try {
+        await buildForUser(userId);
+        kb = loadUserKnowledgeBase(userId);
+        
+        if (!kb) {
+          return res.status(404).json({
+            message:
+              "No expenses found to analyze. Please add expenses first.",
+          });
+        }
+        
+        console.log(`✅ Knowledge base built successfully for user ${userId}`);
+      } catch (err) {
+        console.error(`❌ Failed to build knowledge base for user ${userId}:`, err.message);
+        return res.status(503).json({
+          message: "Failed to build knowledge base. Please try again.",
+          error: err.message
+        });
+      }
     }
 
     // Step 2: Embed the question
     let queryEmbedding;
     try {
       queryEmbedding = await getQueryEmbedding(question);
+      console.log(`✅ Embedded question successfully`);
     } catch (err) {
       console.error("Error embedding question:", err.message);
       return res.status(503).json({ 
@@ -186,11 +207,13 @@ router.post("/verdict", authMiddleware, async (req, res) => {
     // Step 3: FAISS similarity search
     const topIndices = similaritySearch(queryEmbedding, kb.embeddings, 5);
     const retrievedFacts = topIndices.map((idx) => kb.facts[idx]);
+    console.log(`📊 Retrieved ${retrievedFacts.length} relevant facts`);
 
     // Step 4: Generate verdict using LLM
     let verdict;
     try {
       verdict = await generateVerdict(question, retrievedFacts);
+      console.log(`✅ Generated verdict successfully`);
     } catch (err) {
       console.error("Error generating verdict:", err.message);
       return res.status(503).json({ 

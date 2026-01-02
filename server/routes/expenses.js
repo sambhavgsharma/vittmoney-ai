@@ -35,17 +35,26 @@ router.post("/", authMiddleware, async (req, res) => {
       ),
     ])
       .then((result) => {
-        // Only update if confidence is high enough
-        if (result && result.confidence >= 0.6) {
+        console.log(`📊 Classification result for "${description.substring(0, 30)}...": ${JSON.stringify(result)}`);
+        
+        // Update category if we have a result (even with lower confidence)
+        if (result && result.category && typeof result.category === "string") {
+          const confidence = parseFloat(result.confidence) || 0;
+          console.log(`✅ Updating expense ${expense._id} with category: ${result.category} (${(confidence * 100).toFixed(1)}%)`);
+          
           Expense.findByIdAndUpdate(expense._id, {
             category: result.category,
-          }).exec();
+          }).exec()
+            .then(() => console.log(`✅ Successfully updated expense ${expense._id}`))
+            .catch(err => console.error(`❌ Failed to update expense ${expense._id}:`, err));
+        } else {
+          console.warn(`⚠️ Invalid classification result for expense ${expense._id}:`, result);
         }
       })
       .catch((err) => {
         // Log but don't crash - user can set category manually
-        console.warn(
-          `Classification skipped for expense ${expense._id}: ${err.message}`
+        console.error(
+          `❌ Classification failed for expense ${expense._id}: ${err.message}`
         );
       });
 

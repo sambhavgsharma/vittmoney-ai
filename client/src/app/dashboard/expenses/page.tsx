@@ -102,7 +102,12 @@ export default function ExpensesPage() {
       clearInterval(pollingIntervalRef.current);
     }
 
+    let pollCount = 0;
+    const maxPolls = 30; // Max 60 seconds of polling
+
     pollingIntervalRef.current = setInterval(async () => {
+      pollCount++;
+      
       try {
         const data = await apiFetch(`/expenses?limit=10&page=${pagination.page}`);
         // Update expenses to show newly classified ones
@@ -111,10 +116,17 @@ export default function ExpensesPage() {
         // Check if any unclassified expenses exist
         const hasUnclassified = data.data.some((exp: Expense) => !exp.category);
         
-        // Stop polling if all are classified
-        if (!hasUnclassified && pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+        // Stop polling if all are classified or max polls reached
+        if (!hasUnclassified || pollCount >= maxPolls) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          
+          if (pollCount >= maxPolls && hasUnclassified) {
+            console.warn("Max polling attempts reached, some expenses still unclassified");
+            toast.error("Some expenses could not be classified. Please try refreshing the page.");
+          }
         }
       } catch (error) {
         console.error("Error polling expenses:", error);
@@ -183,8 +195,46 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!formData.amount || !formData.description || !formData.date) {
-      toast.error("Please fill all required fields");
+    // Enhanced validation
+    const amount = parseFloat(formData.amount);
+    const description = formData.description.trim();
+    const date = formData.date;
+
+    // Validate amount
+    if (!formData.amount || isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount greater than 0");
+      return;
+    }
+
+    // Validate description
+    if (!description || description.length === 0) {
+      toast.error("Please enter a description");
+      return;
+    }
+
+    if (description.length < 3) {
+      toast.error("Description must be at least 3 characters");
+      return;
+    }
+
+    if (description.length > 200) {
+      toast.error("Description must be less than 200 characters");
+      return;
+    }
+
+    // Validate date
+    if (!date) {
+      toast.error("Please select a date");
+      return;
+    }
+
+    // Check if date is not in the future
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate > today) {
+      toast.error("Date cannot be in the future");
       return;
     }
 
@@ -195,7 +245,8 @@ export default function ExpensesPage() {
         method: "POST",
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount),
+          description: description,
+          amount: amount,
           category: formData.category || null, // Use manual if set, else null for server to classify
         }),
       });
